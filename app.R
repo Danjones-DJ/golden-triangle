@@ -1437,7 +1437,7 @@ ui <- fluidPage(
   div(class = "spotify-header",
       div(class = "header-content",
           h1(class = "main-title", "UK Degree Matchmaker"),
-          p(class = "main-subtitle", "Find your perfect university course based on grades, interests, and location")
+          p(class = "main-subtitle", "Match with your perfect university degrees based on grades, interests, and location!")
       )
   ),
   
@@ -1446,7 +1446,7 @@ ui <- fluidPage(
       
       # Postcode Section
       h2(class = "section-header", "Your Location"),
-      p(class = "section-subtitle", "Enter your UK postcode to find courses near you"),
+      p(class = "section-subtitle", "Enter your UK postcode to filter degrees by location (Optional)"),
       
       div(class = "card-container",
           div(class = "postcode-container",
@@ -1461,7 +1461,7 @@ ui <- fluidPage(
       
       # Grades & Subjects Section
       h2(class = "section-header", "Your Academic Profile"),
-      p(class = "section-subtitle", "Tell us about your A-Level subjects and grades to get personalized course recommendations"),
+      p(class = "section-subtitle", "Tell us your A-Level subjects and their respective grades to help filter by grade-requirement (Optional)"),
       
       div(class = "card-container",
           div(class = "grades-grid",
@@ -1560,7 +1560,7 @@ ui <- fluidPage(
       
       # Distance Filter Section
       h2(class = "section-header", "Distance Preferences"),
-      p(class = "section-subtitle", "Choose how far you're willing to travel"),
+      p(class = "section-subtitle", "How far are you willing to move for university?"),
       
       div(class = "card-container",
           div(class = "distance-grid",
@@ -1583,7 +1583,7 @@ ui <- fluidPage(
       
       # Interests Section - ALL 14 CATEGORIES
       h2(class = "section-header", "Your Interests"),
-      p(class = "section-subtitle", "Choose the subject areas that interest you most"),
+      p(class = "section-subtitle", "Which subjects interest you the most? We will select only the degrees that relate to each filter you apply"),
       
       div(class = "card-container",
           div(class = "interests-grid",
@@ -1620,7 +1620,7 @@ ui <- fluidPage(
       
       # Degree Types Section - ALL DEGREE TYPES
       h2(class = "section-header", "Degree Types"),
-      p(class = "section-subtitle", "Filter by specific qualification types"),
+      p(class = "section-subtitle", "Filter by specific qualification types (work in progress)"),
       
       div(class = "card-container",
           div(class = "degree-grid",
@@ -1639,7 +1639,7 @@ ui <- fluidPage(
       
       # University Filter Section - NEW
       h2(class = "section-header", "Filter by University"),
-      p(class = "section-subtitle", "Select specific universities you're interested in"),
+      p(class = "section-subtitle", "Select the specific universities that you're interested in"),
       
       div(class = "card-container",
           div(class = "postcode-container", style = "max-width: 100%; margin: 0;",
