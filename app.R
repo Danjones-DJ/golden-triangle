@@ -1432,7 +1432,7 @@ ui <- fluidPage(
   div(class = "spotify-header",
       div(class = "header-content",
           h1(class = "main-title", "UK Degree Matchmaker"),
-          p(class = "main-subtitle", "Find your perfect university course based on grades, interests, and location")
+          p(class = "main-subtitle", "Find your potential university course based on grades, interests, and location")
       )
   ),
   
@@ -1441,7 +1441,7 @@ ui <- fluidPage(
       
       # Postcode Section
       h2(class = "section-header", "Your Location"),
-      p(class = "section-subtitle", "Enter your UK postcode to find courses near you"),
+      p(class = "section-subtitle", "Enter your UK postcode to filter by distance."),
       
       div(class = "card-container",
           div(class = "postcode-container",
@@ -1456,7 +1456,7 @@ ui <- fluidPage(
       
       # Grades & Subjects Section
       h2(class = "section-header", "Your Academic Profile"),
-      p(class = "section-subtitle", "Tell us about your A-Level subjects and grades to get personalized course recommendations"),
+      p(class = "section-subtitle", "Tell us about your A-Level subjects and grades. These can be achieved OR predicted. A fourth is not required."),
       
       div(class = "card-container",
           div(class = "grades-grid",
@@ -1555,7 +1555,7 @@ ui <- fluidPage(
       
       # Distance Filter Section
       h2(class = "section-header", "Distance Preferences"),
-      p(class = "section-subtitle", "Choose how far you're willing to travel"),
+      p(class = "section-subtitle", "Choose how far you are willing to move for university. 60 miles is roughly an hour drive one-way."),
       
       div(class = "card-container",
           div(class = "distance-grid",
