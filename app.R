@@ -1555,7 +1555,7 @@ ui <- fluidPage(
       
       # Distance Filter Section
       h2(class = "section-header", "Distance Preferences"),
-      p(class = "section-subtitle", "Choose how far you are willing to move for university. 60 miles is roughly an hour drive one-way."),
+      p(class = "section-subtitle", "How far are you willing to move from home for university? 60 miles is equivalent to about an hours drive."),
       
       div(class = "card-container",
           div(class = "distance-grid",
@@ -1578,7 +1578,7 @@ ui <- fluidPage(
       
       # Interests Section - ALL 14 CATEGORIES
       h2(class = "section-header", "Your Interests"),
-      p(class = "section-subtitle", "Choose the subject areas that interest you most"),
+      p(class = "section-subtitle", "What subject areas interest you the most? This filter will show degrees relating to any subject area you choose."),
       
       div(class = "card-container",
           div(class = "interests-grid",
@@ -1615,7 +1615,7 @@ ui <- fluidPage(
       
       # Degree Types Section - ALL DEGREE TYPES
       h2(class = "section-header", "Degree Types"),
-      p(class = "section-subtitle", "Filter by specific qualification types"),
+      p(class = "section-subtitle", "Filter by specific qualification types (work in progess)"),
       
       div(class = "card-container",
           div(class = "degree-grid",
@@ -1634,7 +1634,7 @@ ui <- fluidPage(
       
       # University Filter Section - NEW
       h2(class = "section-header", "Filter by University"),
-      p(class = "section-subtitle", "Select specific universities you're interested in"),
+      p(class = "section-subtitle", "Which particular universities are you interested in?"),
       
       div(class = "card-container",
           div(class = "postcode-container", style = "max-width: 100%; margin: 0;",
