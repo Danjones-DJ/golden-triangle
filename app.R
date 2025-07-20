@@ -5,7 +5,6 @@ library(geosphere)
 library(conflicted)
 conflict_prefer("span", "shiny")
 
-
 # Load the new dataset
 degree_data <- read.csv("https://raw.githubusercontent.com/Danjones-DJ/Degree-Matchmaker_DJ/refs/heads/main/golden_triangle_dataset_v2.csv", 
                         stringsAsFactors = FALSE)
@@ -16,6 +15,12 @@ degree_data$median_salary <- as.numeric(degree_data$median_salary)
 # Get dynamic degree types and universities from the actual data
 degree_types <- sort(unique(degree_data$degree_type))
 universities <- sort(unique(degree_data$university_name[!is.na(degree_data$university_name) & degree_data$university_name != ""]))
+
+# OPTIMIZATION INFO: Check how many unique addresses vs total courses
+unique_addresses_count <- length(unique(degree_data$provaddress[!is.na(degree_data$provaddress) & degree_data$provaddress != ""]))
+total_courses_count <- nrow(degree_data)
+cat("OPTIMIZATION: Only calculating", unique_addresses_count, "unique addresses instead of", total_courses_count, "courses\n")
+cat("Speed improvement: ~", round(total_courses_count/unique_addresses_count, 1), "x faster\n")
 
 # Load A-Level subjects from GitHub CSV
 subjects_data <- read.csv("https://raw.githubusercontent.com/Danjones-DJ/Degree-Matchmaker_DJ/refs/heads/main/alevel_subjects.csv", 
@@ -1432,7 +1437,7 @@ ui <- fluidPage(
   div(class = "spotify-header",
       div(class = "header-content",
           h1(class = "main-title", "UK Degree Matchmaker"),
-          p(class = "main-subtitle", "Find your potential university course based on grades, interests, and location")
+          p(class = "main-subtitle", "Find your perfect university course based on grades, interests, and location")
       )
   ),
   
@@ -1441,7 +1446,7 @@ ui <- fluidPage(
       
       # Postcode Section
       h2(class = "section-header", "Your Location"),
-      p(class = "section-subtitle", "Enter your UK postcode to filter by distance."),
+      p(class = "section-subtitle", "Enter your UK postcode to find courses near you"),
       
       div(class = "card-container",
           div(class = "postcode-container",
@@ -1456,7 +1461,7 @@ ui <- fluidPage(
       
       # Grades & Subjects Section
       h2(class = "section-header", "Your Academic Profile"),
-      p(class = "section-subtitle", "Tell us about your A-Level subjects and grades. These can be achieved OR predicted. A fourth is not required."),
+      p(class = "section-subtitle", "Tell us about your A-Level subjects and grades to get personalized course recommendations"),
       
       div(class = "card-container",
           div(class = "grades-grid",
@@ -1555,7 +1560,7 @@ ui <- fluidPage(
       
       # Distance Filter Section
       h2(class = "section-header", "Distance Preferences"),
-      p(class = "section-subtitle", "How far are you willing to move from home for university? 60 miles is equivalent to about an hours drive."),
+      p(class = "section-subtitle", "Choose how far you're willing to travel"),
       
       div(class = "card-container",
           div(class = "distance-grid",
@@ -1578,7 +1583,7 @@ ui <- fluidPage(
       
       # Interests Section - ALL 14 CATEGORIES
       h2(class = "section-header", "Your Interests"),
-      p(class = "section-subtitle", "What subject areas interest you the most? This filter will show degrees relating to any subject area you choose."),
+      p(class = "section-subtitle", "Choose the subject areas that interest you most"),
       
       div(class = "card-container",
           div(class = "interests-grid",
@@ -1615,7 +1620,7 @@ ui <- fluidPage(
       
       # Degree Types Section - ALL DEGREE TYPES
       h2(class = "section-header", "Degree Types"),
-      p(class = "section-subtitle", "Filter by specific qualification types (work in progess)"),
+      p(class = "section-subtitle", "Filter by specific qualification types"),
       
       div(class = "card-container",
           div(class = "degree-grid",
@@ -1634,7 +1639,7 @@ ui <- fluidPage(
       
       # University Filter Section - NEW
       h2(class = "section-header", "Filter by University"),
-      p(class = "section-subtitle", "Which particular universities are you interested in?"),
+      p(class = "section-subtitle", "Select specific universities you're interested in"),
       
       div(class = "card-container",
           div(class = "postcode-container", style = "max-width: 100%; margin: 0;",
@@ -1997,15 +2002,13 @@ server <- function(input, output, session) {
     get_selected_subjects(input$subject1, input$subject2, input$subject3, input$subject4)
   })
   
-  # Reactive function to calculate distances when postcode changes - OPTIMIZED
-  distances_calculated <- reactiveVal(degree_data)
-  
-  # Debounced postcode input to improve performance
+  # FIXED: Proper debounced postcode reactive
   user_postcode_debounced <- reactive({
     input$user_postcode
-  }) %>% debounce(1000)  # Wait 1 second after user stops typing
+  }) %>% debounce(1500)  # Increased to 1.5 seconds
   
-  observeEvent(user_postcode_debounced(), {
+  # OPTIMIZED: Distance calculation only for unique addresses
+  distances_calculated <- reactive({
     user_postcode <- user_postcode_debounced()
     
     if(is.null(user_postcode) || user_postcode == "" || trimws(user_postcode) == "") {
@@ -2014,24 +2017,39 @@ server <- function(input, output, session) {
       data_with_distance$distance_miles <- NA
       data_with_distance$distance_range <- NA
       data_with_distance$has_distance <- FALSE
-      distances_calculated(data_with_distance)
-      return()
+      return(data_with_distance)
     }
     
     # Clean user postcode
     user_postcode <- toupper(trimws(user_postcode))
     
-    # Show progress indicator
-    showNotification("Calculating distances...", type = "message", duration = 2)
-    
-    # Calculate distances for all universities using the custom function
-    data_with_distance <- degree_data
-    
-    # Batch process for better performance
     tryCatch({
-      # Apply degree_dist function to each row
-      distance_results <- lapply(1:nrow(data_with_distance), function(i) {
-        result <- degree_dist(user_postcode, data_with_distance$provaddress[i])
+      # OPTIMIZATION: Get unique addresses only
+      unique_addresses <- unique(degree_data$provaddress[!is.na(degree_data$provaddress) & degree_data$provaddress != ""])
+      
+      # Show optimization info and progress
+      cat("OPTIMIZATION: Processing", length(unique_addresses), "unique addresses instead of", nrow(degree_data), "courses\n")
+      showNotification(paste("Smart optimization: Calculating distances for only", length(unique_addresses), 
+                             "unique locations instead of", nrow(degree_data), "courses!"), 
+                       type = "message", duration = 3)
+      
+      # Calculate distances only for unique addresses
+      distance_lookup <- data.frame(
+        provaddress = unique_addresses,
+        stringsAsFactors = FALSE
+      )
+      
+      # Apply degree_dist function to unique addresses only
+      distance_results <- lapply(seq_along(unique_addresses), function(i) {
+        address <- unique_addresses[i]
+        
+        # Show progress every 10 addresses
+        if(i %% 10 == 0 || i == length(unique_addresses)) {
+          showNotification(paste("Processing location", i, "of", length(unique_addresses)), 
+                           type = "message", duration = 1)
+        }
+        
+        result <- degree_dist(user_postcode, address)
         if(nrow(result) > 0) {
           return(list(miles = result$miles[1], distance_range = as.character(result$distance_range[1])))
         } else {
@@ -2039,26 +2057,38 @@ server <- function(input, output, session) {
         }
       })
       
-      # Extract results
-      data_with_distance$distance_miles <- sapply(distance_results, function(x) x$miles)
-      data_with_distance$distance_range <- sapply(distance_results, function(x) x$distance_range)
+      # Create lookup table
+      distance_lookup$distance_miles <- sapply(distance_results, function(x) x$miles)
+      distance_lookup$distance_range <- sapply(distance_results, function(x) x$distance_range)
+      
+      # Map results back to all courses using merge (preserve all columns)
+      data_with_distance <- merge(degree_data, distance_lookup, by = "provaddress", all.x = TRUE, sort = FALSE)
+      
+      # Handle courses without address matches
+      data_with_distance$distance_miles[is.na(data_with_distance$distance_miles)] <- NA
+      data_with_distance$distance_range[is.na(data_with_distance$distance_range)] <- "Unknown"
       data_with_distance$has_distance <- TRUE
       
-      distances_calculated(data_with_distance)
+      # Restore original order (by grade score, highest first)
+      data_with_distance <- data_with_distance[order(-data_with_distance$grade_score, na.last = TRUE), ]
+      
       showNotification("Distances calculated!", type = "message", duration = 1)
+      return(data_with_distance)
       
     }, error = function(e) {
+      cat("Error in distance calculation:", e$message, "\n")
+      data_with_distance <- degree_data
       data_with_distance$distance_miles <- NA
       data_with_distance$distance_range <- "Error"
       data_with_distance$has_distance <- FALSE
-      distances_calculated(data_with_distance)
       showNotification("Error calculating distances", type = "error", duration = 3)
+      return(data_with_distance)
     })
   })
   
   # Main filtering logic (triggered by submit button) - OPTIMIZED
   filtered_courses <- eventReactive(input$submit_filters, {
-    data <- distances_calculated()  # Use reactive value instead of function
+    data <- distances_calculated()  # Use reactive function correctly
     
     # Get selected subjects
     student_subjects <- get_selected_subjects(input$subject1, input$subject2, input$subject3, input$subject4)
@@ -2217,7 +2247,7 @@ server <- function(input, output, session) {
   displayed_courses <- reactive({
     # Use filtered data if submit has been pressed, otherwise show all courses
     if(input$submit_filters == 0) {
-      filtered_data <- distances_calculated()  # Use reactive value
+      filtered_data <- distances_calculated()  # Use reactive function correctly
       filtered_data$match_type <- "No Data"
       filtered_data$subject_requirements_met <- FALSE
       filtered_data$selected_subjects <- list(character(0))
@@ -2417,15 +2447,15 @@ server <- function(input, output, session) {
         # Check if user has selected any subjects
         has_subject_selection <- length(selected_subjects) > 0
         
-        # Build requirements text from real data - UPDATED COLUMN NAMES
+        # Build requirements text from real data - UPDATED COLUMN NAMES with DEBUG
         requirements_text <- ""
         
         # Add A-level subjects (main requirement)
         if(!is.null(course$a_level_subject_reqs) && !is.na(course$a_level_subject_reqs) && course$a_level_subject_reqs != "") {
           requirements_text <- course$a_level_subject_reqs
-          cat("Found a_level_subject_reqs:", course$a_level_subject_reqs, "\n")
+          cat("DEBUG MODAL: Found a_level_subject_reqs:", course$a_level_subject_reqs, "\n")
         } else {
-          cat("No a_level_subject_reqs found for course:", course$title, "\n")
+          cat("DEBUG MODAL: No a_level_subject_reqs found for course:", course$title, "\n")
         }
         
         # Add placement year info if available - UPDATED COLUMN NAME
@@ -2469,12 +2499,16 @@ server <- function(input, output, session) {
           requirements_text <- "Requirements information not available."
         }
         
-        cat("Final requirements text:", requirements_text, "\n")
+        cat("DEBUG MODAL: Final requirements text:", requirements_text, "\n")
+        cat("DEBUG MODAL: Current selected subjects:", paste(selected_subjects, collapse = ", "), "\n")
         
-        # Find matched subjects using YOUR working logic
-        matched_subjects_list <- if(has_subject_selection && requirements_text != "") {
-          find_matched_subjects(selected_subjects, requirements_text)
+        # Find matched subjects using YOUR working logic with DEBUG
+        matched_subjects_list <- if(has_subject_selection && requirements_text != "" && requirements_text != "Requirements information not available.") {
+          result <- find_matched_subjects(selected_subjects, requirements_text)
+          cat("DEBUG MODAL: find_matched_subjects returned:", paste(result, collapse = ", "), "\n")
+          result
         } else {
+          cat("DEBUG MODAL: Skipping subject matching - no subjects or requirements\n")
           character(0)
         }
         
@@ -2523,10 +2557,12 @@ server <- function(input, output, session) {
     }
   })
   
-  # Observe sort/filter changes to preserve scroll position
+  # Observe sort/filter changes to preserve scroll position - OPTIMIZED
   observeEvent(c(input$sort_by, input$num_courses, input$current_tab), {
-    # This will help maintain scroll position during reactive updates
-    session$sendCustomMessage("preserveScroll", list())
+    # Only trigger when there are actual courses to display
+    if(input$submit_filters > 0 || nrow(degree_data) > 0) {
+      session$sendCustomMessage("preserveScroll", list())
+    }
   }, ignoreInit = TRUE)
   observeEvent(current_selected_subjects(), {
     cat("Subjects changed to:", paste(current_selected_subjects(), collapse = ", "), "\n")
@@ -2547,12 +2583,13 @@ server <- function(input, output, session) {
         
         cat("Current subjects:", paste(selected_subjects, collapse = ", "), "\n")
         
-        # Build requirements text from real data - UPDATED COLUMN NAMES
+        # Build requirements text from real data - UPDATED COLUMN NAMES with DEBUG
         requirements_text <- ""
         
         # Add A-level subjects (main requirement)
         if(!is.null(course$a_level_subject_reqs) && !is.na(course$a_level_subject_reqs) && course$a_level_subject_reqs != "") {
           requirements_text <- course$a_level_subject_reqs
+          cat("DEBUG UPDATE: Found a_level_subject_reqs:", course$a_level_subject_reqs, "\n")
         }
         
         # Add placement year info if available
@@ -2596,12 +2633,16 @@ server <- function(input, output, session) {
           requirements_text <- "Requirements information not available."
         }
         
-        cat("Requirements text:", requirements_text, "\n")
+        cat("DEBUG UPDATE: Requirements text:", requirements_text, "\n")
+        cat("DEBUG UPDATE: Current subjects:", paste(selected_subjects, collapse = ", "), "\n")
         
-        # Find matched subjects using YOUR working logic
-        matched_subjects_list <- if(has_subject_selection && requirements_text != "") {
-          find_matched_subjects(selected_subjects, requirements_text)
+        # Find matched subjects using YOUR working logic with DEBUG
+        matched_subjects_list <- if(has_subject_selection && requirements_text != "" && requirements_text != "Requirements information not available.") {
+          result <- find_matched_subjects(selected_subjects, requirements_text)
+          cat("DEBUG UPDATE: find_matched_subjects returned:", paste(result, collapse = ", "), "\n")
+          result
         } else {
+          cat("DEBUG UPDATE: Skipping subject matching - no subjects or requirements\n")
           character(0)
         }
         
